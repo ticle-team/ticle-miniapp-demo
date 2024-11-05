@@ -7,6 +7,7 @@ import {
   $debug,
   init as initSDK,
 } from '@telegram-apps/sdk-react';
+import { useEffect, useState } from 'react';
 
 /**
  * Initializes the application and configures its dependencies.
@@ -15,9 +16,23 @@ export function init(debug: boolean): void {
   // Set @telegram-apps/sdk-react debug mode.
   $debug.set(debug);
 
-  // Initialize special event handlers for Telegram Desktop, Android, iOS, etc.
-  // Also, configure the package.
-  initSDK();
+  const [initialized, setInitialized] = useState(false);
+
+  // Initialize the library.
+  useEffect(() => {
+    if (initialized) return;
+
+    const timeoutId = setTimeout(() => {
+      // Initialize special event handlers for Telegram Desktop, Android, iOS, etc.
+      // Also, configure the package.
+      initSDK();
+      setInitialized(true);
+    });
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [initialized]);
 
   // Mount all components used in the project.
   if (backButton.isSupported()) {

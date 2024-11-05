@@ -1,0 +1,15 @@
+api:
+  insecure: false
+  target: "dev-builder.shaple.io"
+project:
+  name: "ticle-miniapp-demo"
+stack:
+  name: "local"
+  siteURL: "https://127.0.0.1:3000"
+auth:
+  mailer:
+    autoConfirm: true
+  external:
+    emailEnabled: true
+instance:
+  zone: "default"

@@ -3,8 +3,9 @@
 import { Button, Placeholder } from '@telegram-apps/telegram-ui';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { Page } from '@/components/Page';
 
-export default function Home() {
+export default function RootPage() {
   const router = useRouter();
   return (
     <Placeholder

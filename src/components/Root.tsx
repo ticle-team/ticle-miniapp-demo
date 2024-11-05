@@ -1,61 +1,58 @@
 'use client';
 
-import {
-  initData,
-  miniApp,
-  useLaunchParams,
-  useSignal,
-} from '@telegram-apps/sdk-react';
 import '@telegram-apps/telegram-ui/dist/styles.css';
 import { AppRoot, Breadcrumbs } from '@telegram-apps/telegram-ui';
 import { init } from '@/core/init';
-import { PropsWithChildren, useEffect, useState } from 'react';
+import { PropsWithChildren, Suspense, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ErrorPage } from '@/components/ErrorPage';
 import { useDidMount } from '@/hooks/useDidMount';
+import { ReactQueryProvider } from '@/hooks/reactQuery';
+import { TelegramInit, useTelegramInit } from '@/hooks/tma';
+import { ShapleAuthProvider } from '@/hooks/shaple';
+import { miniApp, useLaunchParams, useSignal } from '@telegram-apps/sdk-react';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
-function RootInner({ children }: PropsWithChildren) {
-  const router = useRouter();
-  const lp = useLaunchParams();
-  const debug = lp.startParam === 'debug';
-  const [initialized, setInitialized] = useState(false);
-
-  // Initialize the library.
-  useEffect(() => {
-    if (initialized) return;
-
-    const timeoutId = setTimeout(() => {
-      init(false);
-      setInitialized(true);
-    });
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, []);
-
-  const isDark = useSignal(miniApp.isDark);
-
-  // Enable debug mode to see all the methods sent and events received.
-  useEffect(() => {
-    debug && import('eruda').then((lib) => lib.default.init());
-  }, [debug]);
-
+function Layout({ children }: PropsWithChildren) {
   return (
+    <ReactQueryProvider>
+      <ShapleAuthProvider>
+        <Suspense
+          fallback={
+            <LoadingSpinner className="flex m-auto w-1/4 h-1/4 justify-center items-center" />
+          }
+        >
+          {children}
+        </Suspense>
+      </ShapleAuthProvider>
+    </ReactQueryProvider>
+  );
+}
+
+function RootInner2({ children }: PropsWithChildren) {
+  const lp = useLaunchParams();
+  const isDark = useSignal(miniApp.isDark);
+  const { mounted } = useTelegramInit();
+
+  return mounted ? (
     <AppRoot
       className="flex flex-1 flex-col w-full h-full"
       appearance={isDark ? 'dark' : 'light'}
       platform={['macos', 'ios'].includes(lp.platform) ? 'ios' : 'base'}
     >
-      <Breadcrumbs divider="chevron" className="flex p-1">
-        <Breadcrumbs.Item onClick={() => router.push('/')}>/</Breadcrumbs.Item>
-        <Breadcrumbs.Item onClick={() => router.push('/home')}>
-          Home
-        </Breadcrumbs.Item>
-      </Breadcrumbs>
-      {children}
+      <Layout>{children}</Layout>
     </AppRoot>
+  ) : (
+    <LoadingSpinner className="flex m-auto size-1/4 justify-center items-center" />
+  );
+}
+
+function RootInner({ children }: PropsWithChildren) {
+  return (
+    <TelegramInit>
+      <RootInner2>{children}</RootInner2>
+    </TelegramInit>
   );
 }
 
