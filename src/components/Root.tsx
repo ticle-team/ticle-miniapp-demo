@@ -8,24 +8,32 @@ import {
 } from '@telegram-apps/sdk-react';
 import '@telegram-apps/telegram-ui/dist/styles.css';
 import { AppRoot, Breadcrumbs } from '@telegram-apps/telegram-ui';
-import { useClientOnce } from '@/hooks/useClientOnce';
 import { init } from '@/core/init';
-import { useEffect } from 'react';
+import { PropsWithChildren, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ErrorPage } from '@/components/ErrorPage';
+import { useDidMount } from '@/hooks/useDidMount';
 
-export default function Root({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+function RootInner({ children }: PropsWithChildren) {
   const router = useRouter();
   const lp = useLaunchParams();
   const debug = lp.startParam === 'debug';
+  const [initialized, setInitialized] = useState(false);
 
   // Initialize the library.
-  useClientOnce(() => {
-    init(false);
-  });
+  useEffect(() => {
+    if (initialized) return;
+
+    const timeoutId = setTimeout(() => {
+      init(false);
+      setInitialized(true);
+    });
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, []);
 
   const isDark = useSignal(miniApp.isDark);
 
@@ -48,5 +56,22 @@ export default function Root({
       </Breadcrumbs>
       {children}
     </AppRoot>
+  );
+}
+
+export default function Root(props: PropsWithChildren) {
+  // Unfortunately, Telegram Mini Apps does not allow us to use all features of
+  // the Server Side Rendering. That's why we are showing loader on the server
+  // side.
+  const didMount = useDidMount();
+
+  return didMount ? (
+    <ErrorBoundary fallback={ErrorPage}>
+      <RootInner {...props} />
+    </ErrorBoundary>
+  ) : (
+    <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+      Loading
+    </div>
   );
 }
